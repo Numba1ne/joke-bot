@@ -1,0 +1,11 @@
+[project]
+name = "joke-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "langgraph>=0.2.0",
+    "pyjokes>=0.6.0",
+    "pydantic>=2.0.0",
+]
