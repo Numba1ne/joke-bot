@@ -1,23 +1,35 @@
-# 🎭 LangGraph Joke Bot
+# 🎭 Agentic LangGraph Joke Bot
 
-A multilingual joke bot built with LangGraph that demonstrates agentic state flow without LLMs. This bot uses the `pyjokes` library to deliver jokes in multiple languages and categories.
+An advanced, multilingual joke bot built with LangGraph that features an LLM-powered **Writer-Critic loop**. This bot doesn't just fetch static jokes; it generates, evaluates, and refines them to ensure high-quality software engineering humor.
 
 ## ✨ Features
 
-- 🎭 **Fetch Jokes**: Get random jokes from different categories
-- 📂 **Change Category**: Switch between Neutral, Chuck Norris, and All categories
-- 🌐 **Multilingual Support**: Enjoy jokes in 6 different languages
-- 🔁 **Reset History**: Clear your joke history anytime
-- 📊 **Session Tracking**: Keep track of all jokes you've enjoyed
+- 🤖 **Writer-Critic Loop**: An agentic loop where a Writer LLM generates jokes and a Critic LLM evaluates them.
+- 🌀 **Repetition Avoidance**: The bot remembers past jokes and ensures new ones are unique and fresh.
+- 📂 **Dynamic Categories**: Specify categories like Neutral, Chuck Norris, or All for tailored humor.
+- 🌐 **Multilingual Support**: Generate jokes in English, German, Spanish, and more.
+- 🔁 **Reset History**: Clear session history while maintaining the agentic state.
+- 📊 **Session Tracking**: Track joke count, final category, and language choices.
 
-## 🌍 Supported Languages
+## 🏗️ Architecture: The Writer-Critic Loop
 
-- 🇬🇧 English (en)
-- 🇩🇪 German (de)
-- 🇪🇸 Spanish (es)
-- 🇪🇸 Galician (gl)
-- 🇪🇸 Basque (eu)
-- 🇮🇹 Italian (it)
+This bot demonstrates the **Reason, Reflect, and Revise** pattern:
+
+1. **Writer Node**: Uses GPT-4o-mini to draft a joke based on the selected category and past history.
+2. **Critic Node**: Evaluates the joke for quality and uniqueness. It can reject jokes up to 5 times.
+3. **Looping**: If rejected, the Writer tries again with awareness of why the previous attempt failed (implicitly by being told what to avoid).
+
+### State Structure
+```python
+class JokeState(BaseModel):
+    jokes: List[Joke] = []           # History of approved jokes
+    jokes_choice: str = "n"          # User menu selection
+    category: str = "neutral"        # Selected category
+    language: str = "en"             # Selected language
+    latest_joke: str = ""            # Current draft being evaluated
+    approved: bool = False           # Critic's approval flag
+    retry_count: int = 0             # Current loop iteration
+```
 
 ## 📦 Installation
 
@@ -27,138 +39,46 @@ git clone <your-repo-url>
 cd joke-bot
 ```
 
-2. Install dependencies using uv (recommended) or pip:
+2. Install dependencies using `uv` (recommended):
 ```bash
-# Using uv
 uv sync
+```
 
-# Or using pip
-pip install -e .
+3. Set up your environment variables:
+Create a `.env` file in the root directory and add your OpenAI API key:
+```env
+OPENAI_API_KEY=your_api_key_here
 ```
 
 ## 🚀 Usage
 
 Run the bot:
 ```bash
-python main.py
+uv run main.py
 ```
 
 ### Menu Options
+- **[n] 🎭 Next Joke** - Trigger the Writer-Critic loop for a fresh joke.
+- **[c] 📂 Change Category** - Switch themes (Neutral, Chuck Norris, All).
+- **[l] 🌐 Change Language** - Select from supported languages.
+- **[r] 🔁 Reset History** - Wipe the session's joke history.
+- **[q] 🚪 Quit** - Exit and see your session stats.
 
-When the bot starts, you'll see a menu with the following options:
-
-- **[n] 🎭 Next Joke** - Fetch and display a new joke
-- **[c] 📂 Change Category** - Switch between joke categories (Neutral, Chuck Norris, All)
-- **[l] 🌐 Change Language** - Select from 6 supported languages
-- **[r] 🔁 Reset History** - Clear all jokes from your current session
-- **[q] 🚪 Quit** - Exit the bot and see your session summary
-
-## 🏗️ Architecture
-
-This bot is built using LangGraph and demonstrates:
-
-- **State Management**: Using Pydantic models to define and manage state
-- **Node Functions**: Modular functions for each bot action
-- **Conditional Routing**: Dynamic routing based on user choices
-- **Graph Compilation**: Building and compiling a state graph workflow
-- **Looping Behavior**: Continuous interaction until user quits
-
-### State Structure
-
-```python
-class JokeState(BaseModel):
-    jokes: List[Joke] = []           # Accumulated jokes
-    jokes_choice: str = "n"          # User's menu choice
-    category: str = "neutral"        # Current joke category
-    language: str = "en"             # Current language
-    quit: bool = False               # Exit flag
-```
-
-### Graph Nodes
-
-1. **show_menu** - Display menu and capture user input
-2. **fetch_joke** - Fetch a joke from pyjokes
-3. **update_category** - Change joke category
-4. **update_language** - Change joke language
-5. **reset_jokes** - Clear joke history
-6. **exit_bot** - Exit gracefully
-
-## 📝 Example Session
-
-```
-🎉==========================================================🎉
-    WELCOME TO THE LANGGRAPH JOKE BOT!
-    This example demonstrates agentic state flow without LLMs
-============================================================
-
-🎭 Menu | Category: NEUTRAL | Language: EN | Jokes: 0
-----------------------------------------------------------------------
-Pick an option:
-[n] 🎭 Next Joke  [c] 📂 Change Category  [l] 🌐 Change Language
-[r] 🔁 Reset History  [q] 🚪 Quit
-User Input: n
-
-😂 Why do programmers prefer dark mode? Because light attracts bugs!
-
-============================================================
-
-🎭 Menu | Category: NEUTRAL | Language: EN | Jokes: 1
-----------------------------------------------------------------------
-Pick an option:
-[n] 🎭 Next Joke  [c] 📂 Change Category  [l] 🌐 Change Language
-[r] 🔁 Reset History  [q] 🚪 Quit
-User Input: l
-
-🌐 Available Languages:
-[0] English (en)
-[1] German (de)
-[2] Spanish (es)
-[3] Galician (gl)
-[4] Basque (eu)
-[5] Italian (it)
-Select language: 2
-✅ Language changed to: Spanish
-
-============================================================
-
-🎭 Menu | Category: NEUTRAL | Language: ES | Jokes: 1
-----------------------------------------------------------------------
-Pick an option:
-[n] 🎭 Next Joke  [c] 📂 Change Category  [l] 🌐 Change Language
-[r] 🔁 Reset History  [q] 🚪 Quit
-User Input: q
-
-🚪==========================================================🚪
-    GOODBYE!
-============================================================
-
-🎊==========================================================🎊
-    SESSION COMPLETE!
-============================================================
-    📈 You enjoyed 1 jokes during this session!
-    📂 Final category: NEUTRAL
-    🌐 Final language: ES
-    🙏 Thanks for using the LangGraph Joke Bot!
-============================================================
-```
+## 📂 Project Structure
+- `main.py`: The core LangGraph workflow and node definitions.
+- `prompts.yaml`: Centralized management for Agent system and user prompts.
+- `utils.py`: Utility functions for loading and formatting dynamic prompts.
+- `.env`: (User-created) For API credentials.
 
 ## 🛠️ Technical Details
-
 - **Framework**: LangGraph
-- **Joke Source**: pyjokes library
-- **State Management**: Pydantic BaseModel
-- **Graph Type**: StateGraph with conditional routing
-- **Python Version**: 3.8+
+- **LLM**: OpenAI GPT-4o-mini
+- **Validation**: Pydantic
+- **Environment**: python-dotenv, PyYAML
 
 ## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to submit issues or pull requests.
+MIT License.
 
 ## 🙏 Acknowledgments
-
 - Built with [LangGraph](https://github.com/langchain-ai/langgraph)
-- Jokes provided by [pyjokes](https://github.com/pyjokes/pyjokes)
+- Powered by [OpenAI](https://openai.com/)
