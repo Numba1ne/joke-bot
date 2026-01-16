@@ -25,9 +25,10 @@ class Joke(BaseModel):
 class JokeState(BaseModel):
     """Main state for the joke bot workflow"""
     jokes: Annotated[List[Joke], add] = []  # Accumulates jokes using add reducer
-    jokes_choice: Literal["n", "c", "l", "r", "q"] = "n"  # next joke, change category, change language, reset, or quit
+    jokes_choice: Literal["n", "c", "l", "p", "r", "q"] = "n"  # next joke, change category, change language, change persona, reset, or quit
     category: str = "neutral"
     language: str = "en"
+    persona: str = "Classic Comedian"
     quit: bool = False
     latest_joke: str = ""
     approved: bool = False
@@ -44,7 +45,7 @@ def show_menu(state: JokeState) -> dict:
     print("-" * 70)
     print("Pick an option:")
     print("[n] 🎭 Next Joke  [c] 📂 Change Category  [l] 🌐 Change Language")
-    print("[r] 🔁 Reset History  [q] 🚪 Quit")
+    print("[p] 👤 Change Persona  [r] 🔁 Reset History  [q] 🚪 Quit")
     user_input = input("User Input: ").strip().lower()
     return {"jokes_choice": user_input}
 
@@ -57,7 +58,7 @@ def writer_node(state: JokeState) -> dict:
     past_jokes = "\n".join([j.text for j in state.jokes]) if state.jokes else "None yet."
     
     prompt_config = get_prompt("writer")
-    formatted = format_prompt(prompt_config, category=state.category, past_jokes=past_jokes)
+    formatted = format_prompt(prompt_config, category=state.category, past_jokes=past_jokes, language=state.language, persona=state.persona)
     
     messages = [
         {"role": "system", "content": formatted["system"]},
@@ -78,7 +79,7 @@ def critic_node(state: JokeState) -> dict:
     past_jokes = "\n".join([j.text for j in state.jokes]) if state.jokes else "None yet."
     
     prompt_config = get_prompt("critic")
-    formatted = format_prompt(prompt_config, joke=state.latest_joke, past_jokes=past_jokes)
+    formatted = format_prompt(prompt_config, joke=state.latest_joke, past_jokes=past_jokes, language=state.language)
     
     messages = [
         {"role": "system", "content": formatted["system"]},
@@ -169,6 +170,35 @@ def update_language(state: JokeState) -> dict:
         return {}
 
 
+def update_persona(state: JokeState) -> dict:
+    """Allow user to change the comedian persona"""
+    personas = [
+        "Classic Comedian",
+        "Grumpy Senior Dev",
+        "Startup Founder",
+        "COBOL Programmer",
+        "AI Assistant having a mid-life crisis"
+    ]
+    print("\n👤 Available Personas:")
+    for idx, name in enumerate(personas):
+        print(f"[{idx}] {name}")
+    try:
+        selection = int(input("Select persona: ").strip())
+        if 0 <= selection < len(personas):
+            selected_persona = personas[selection]
+            print(f"✅ Persona changed to: {selected_persona}\n")
+            print("=" * 60)
+            return {"persona": selected_persona}
+        else:
+            print("⚠️ Invalid selection. Keeping current persona.\n")
+            print("=" * 60)
+            return {}
+    except ValueError:
+        print("⚠️ Invalid input. Keeping current persona.\n")
+        print("=" * 60)
+        return {}
+
+
 def reset_jokes(state: JokeState) -> dict:
     """Reset the joke history"""
     print("\n🔁 Resetting joke history...")
@@ -197,6 +227,8 @@ def route_choice(state: JokeState) -> str:
         return "update_category"
     elif state.jokes_choice == "l":
         return "update_language"
+    elif state.jokes_choice == "p":
+        return "update_persona"
     elif state.jokes_choice == "r":
         return "reset_jokes"
     elif state.jokes_choice == "q":
@@ -229,6 +261,7 @@ def build_joke_graph() -> CompiledStateGraph:
     workflow.add_node("show_final_joke", show_final_joke)
     workflow.add_node("update_category", update_category)
     workflow.add_node("update_language", update_language)
+    workflow.add_node("update_persona", update_persona)
     workflow.add_node("reset_jokes", reset_jokes)
     workflow.add_node("exit_bot", exit_bot)
 
@@ -243,6 +276,7 @@ def build_joke_graph() -> CompiledStateGraph:
             "writer": "writer",
             "update_category": "update_category",
             "update_language": "update_language",
+            "update_persona": "update_persona",
             "reset_jokes": "reset_jokes",
             "exit_bot": "exit_bot",
         }
@@ -263,6 +297,7 @@ def build_joke_graph() -> CompiledStateGraph:
     workflow.add_edge("show_final_joke", "show_menu")
     workflow.add_edge("update_category", "show_menu")
     workflow.add_edge("update_language", "show_menu")
+    workflow.add_edge("update_persona", "show_menu")
     workflow.add_edge("reset_jokes", "show_menu")
     
     # Add edge from exit_bot to END
